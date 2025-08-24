@@ -4,6 +4,7 @@ from typing import Any
 
 
 class StockTick(BaseModel):
+    ticker: str
     open: float = Field(..., gt=0.0)
     high: float = Field(..., gt=0.0)
     low: float = Field(..., gt=0.0)

@@ -50,7 +50,13 @@ class KafkaProducerClient:
 
 
 class KafkaConsumerClient:
-    def __init__(self, bootstrap_servers: str, group_id: str, topics: list[str], auto_offset_reset: str = "earliest"):
+    def __init__(
+        self,
+        bootstrap_servers: str,
+        group_id: str,
+        topics: list[str],
+        auto_offset_reset: str = "earliest",
+    ):
         self.bootstrap_servers = bootstrap_servers
         self.group_id = group_id
         self.topics = topics

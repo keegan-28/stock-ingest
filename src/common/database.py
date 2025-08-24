@@ -8,14 +8,21 @@ from .logger import logger
 
 class PostgresDB:
     def __init__(self, user: str, password: str, host: str, port: int, db: str) -> None:
-        self.engine = create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}")
+        self.engine = create_engine(
+            f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
+        )
         self.metadata = MetaData()
 
     def table_exists(self, table_name: str) -> bool:
         inspector = inspect(self.engine)
         return inspector.has_table(table_name)
 
-    def create_table(self, table_name: str, table_model: BaseModel, primary_keys: list[str] | None = None) -> None:
+    def create_table(
+        self,
+        table_name: str,
+        table_model: BaseModel,
+        primary_keys: list[str] | None = None,
+    ) -> None:
         if self.table_exists(table_name):
             logger.info(f"{table_name} already exists.")
             return
@@ -29,7 +36,12 @@ class PostgresDB:
         table = Table(table_name, self.metadata, *columns)
         self.metadata.create_all(self.engine, tables=[table])
 
-    def insert_items(self, table_name: str, items: list[BaseModel], conflict_cols: list[str] | None = None) -> None:
+    def insert_items(
+        self,
+        table_name: str,
+        items: list[BaseModel],
+        conflict_cols: list[str] | None = None,
+    ) -> None:
         table = Table(table_name, self.metadata, autoload_with=self.engine)
         values = [item.model_dump() for item in items]
 
@@ -52,13 +64,13 @@ class PostgresDB:
         return inspector.get_table_names()
 
     def _map_pydantic_type(self, py_type: Any):
-        if py_type == str:
+        if py_type is str:
             return String
-        elif py_type == float:
+        elif py_type is float:
             return Float
-        elif py_type == int:
+        elif py_type is int:
             return Integer
-        elif py_type == TIMESTAMP:
+        elif py_type is TIMESTAMP:
             return TIMESTAMP
         else:
             return String

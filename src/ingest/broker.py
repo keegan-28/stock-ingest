@@ -1,4 +1,9 @@
-from alpaca.data import StockHistoricalDataClient, SupportedCurrencies, TimeFrameUnit, TimeFrame
+from alpaca.data import (
+    StockHistoricalDataClient,
+    SupportedCurrencies,
+    TimeFrameUnit,
+    TimeFrame,
+)
 from alpaca.data import StockBarsRequest, BarSet, Bar
 from datetime import datetime
 
@@ -25,7 +30,7 @@ class AlpacaBroker:
         ticker: str,
         last_bar_time: datetime,
         time_unit: int = 1,
-        timeframe: str = "Minute"
+        timeframe: str = "Minute",
     ) -> list[StockTick]:
         if self.data_client is None:
             raise AssertionError("Client not set.")
@@ -44,7 +49,9 @@ class AlpacaBroker:
             currency=SupportedCurrencies.USD,
             timeframe=timeframes[timeframe],
         )
-        raw_data: BarSet = self.data_client.get_stock_bars(request_params=request_params)
+        raw_data: BarSet = self.data_client.get_stock_bars(
+            request_params=request_params
+        )
         data: list[StockTick] = []
         raw_ticks: list[Bar] = raw_data[ticker]
 
@@ -58,7 +65,7 @@ class AlpacaBroker:
                         low=bar.low,
                         close=bar.close,
                         volume=bar.volume,
-                        timestamp=bar.timestamp
+                        timestamp=bar.timestamp,
                     )
                 )
         return data
