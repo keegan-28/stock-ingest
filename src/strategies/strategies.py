@@ -8,7 +8,7 @@ class TechnicalIndicators:
         df: pl.DataFrame,
         window_size: int,
         col_name: str = "close",
-        output_col: str = None,
+        output_col: str | None = None,
     ) -> pl.DataFrame:
         if output_col is None:
             output_col = f"ma{window_size}"
@@ -19,7 +19,7 @@ class TechnicalIndicators:
         df: pl.DataFrame,
         window_size: int,
         col_name: str = "close",
-        output_col: str = None,
+        output_col: str | None = None,
     ) -> pl.DataFrame:
         if output_col is None:
             output_col = f"std{window_size}"
@@ -27,7 +27,7 @@ class TechnicalIndicators:
 
     @staticmethod
     def rolling_volume_avg(
-        df: pl.DataFrame, window_size: int, output_col: str = None
+        df: pl.DataFrame, window_size: int, output_col: str | None = None
     ) -> pl.DataFrame:
         if output_col is None:
             output_col = f"vol_ma{window_size}"
@@ -64,8 +64,10 @@ class TechnicalIndicators:
         df: pl.DataFrame,
         price_col: str = "close",
         period: int = 14,
-        col_name: str = "rsi_14",
+        col_name: str | None = None,
     ) -> pl.DataFrame:
+        if col_name is None:
+            col_name = f"rsi_{period}"
         return (
             df.with_columns([(pl.col(price_col).diff()).alias("price_change")])
             .with_columns(
@@ -101,7 +103,7 @@ class TechnicalIndicators:
             )
             .drop(["price_change", "gain", "loss", "avg_gain", "avg_loss", "rs"])
         )
-    
+
     @staticmethod
     def rolling_correlation(df: pl.DataFrame, tickers: list[str], window: int = 20) -> pl.DataFrame:
         """
@@ -122,14 +124,16 @@ class TechnicalIndicators:
         rolling_corrs = []
 
         for start in range(len(returns_pd) - window + 1):
-            window_df = returns_pd.iloc[start:start + window]
+            window_df = returns_pd.iloc[start: start + window]
             corr_matrix = window_df.corr()
             corr_matrix["timestamp"] = returns_pd.index[start + window - 1]
             rolling_corrs.append(corr_matrix)
 
         rolling_corr_df = pd.concat(rolling_corrs)
-        rolling_corr_df = rolling_corr_df.reset_index().melt(
-            id_vars=["timestamp", "index"], var_name="ticker2", value_name="correlation"
-        ).rename(columns={"index": "ticker1"})
+        rolling_corr_df = (
+            rolling_corr_df.reset_index()
+            .melt(id_vars=["timestamp", "index"], var_name="ticker2", value_name="correlation")
+            .rename(columns={"index": "ticker1"})
+        )
 
         return pl.from_pandas(rolling_corr_df)

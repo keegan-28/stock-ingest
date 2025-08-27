@@ -11,18 +11,18 @@ from src.common.schema_registry import StockTick
 
 
 class AlpacaBroker:
-    def __init__(self, api_key: str, api_secret: str):
+    def __init__(self, api_key: str, api_secret: str) -> None:
         self.__api_key = api_key
         self.__api_secret = api_secret
 
         self.data_client = None
 
-    def connect(self):
+    def connect(self) -> None:
         self.data_client = StockHistoricalDataClient(
             api_key=self.__api_key, secret_key=self.__api_secret
         )
 
-    def close_connection(self):
+    def close_connection(self) -> None:
         pass
 
     def get_stock_bars_live(

@@ -1,6 +1,6 @@
 from src.services import services
 from src.common.schema_registry import StockTick
-from src.common.logger import logger
+from src.utils.logger import logger
 from datetime import datetime as dt, timedelta
 import pytz
 import os
@@ -19,12 +19,12 @@ broker = services.get_broker_conn()
 broker.connect()
 pgdb = services.get_db_conn()
 
-raw_ticker_table = os.getenv("DB_TABLE_RAW_DATA")
+raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
 
 if not pgdb.table_exists(raw_ticker_table):
     pgdb.create_table(raw_ticker_table, StockTick, ["timestamp", "ticker"])
 
-config = load_config(os.getenv("TICKER_CONFIG"))
+config = load_config(os.environ["TICKER_CONFIG"])
 tickers = config["tickers"]
 ticker_data = []
 try:

@@ -5,16 +5,16 @@ from typing import Any
 
 class StockTick(BaseModel):
     ticker: str
-    open: float = Field(..., gte=0.0)
-    high: float = Field(..., gte=0.0)
-    low: float = Field(..., gte=0.0)
-    close: float = Field(..., gte=0.0)
-    volume: float = Field(..., gte=0.0)
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
     timestamp: datetime
     metadata: dict[str, Any] | None = None
 
 
-class Correlation(BaseModel):    
+class Correlation(BaseModel):
     timestamp: datetime = Field(..., description="Trading day timestamp (end of day)")
 
     ticker_1: str = Field(..., description="Stock symbol or instrument identifier")

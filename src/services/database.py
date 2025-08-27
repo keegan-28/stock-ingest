@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Any, Type
 from sqlalchemy import create_engine, MetaData, Table, Column, inspect, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.types import String, Float, TIMESTAMP, Integer
 from pydantic import BaseModel
 from datetime import datetime
-from src.common.logger import logger
+from src.utils.logger import logger
 
 
 class PostgresDB:
@@ -19,7 +19,7 @@ class PostgresDB:
     def create_table(
         self,
         table_name: str,
-        table_model: BaseModel,
+        table_model: Type[BaseModel],
         primary_keys: list[str] | None = None,
     ) -> None:
         if self.table_exists(table_name):
@@ -29,7 +29,7 @@ class PostgresDB:
         columns = []
         for name, field in table_model.model_fields.items():
             col_type = self._map_pydantic_type(field.annotation)
-            pk = primary_keys and name in primary_keys
+            pk = primary_keys is not None and name in primary_keys
             columns.append(Column(name, col_type, primary_key=pk))
 
         table = Table(table_name, self.metadata, *columns)
@@ -51,18 +51,18 @@ class PostgresDB:
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
-    def fetch_items(self, table_name: str, query: str, params: dict | None = None) -> list:
-        query = text(query)
+    def fetch_items(self, table_name: str, query: str, params: dict | None = None) -> list[Any]:
+        clause = text(query)
 
         with self.engine.begin() as conn:
-            ticks: list = conn.execute(query, parameters=params).fetchall()
+            ticks: list[Any] = conn.execute(clause, parameters=params).fetchall()
         return ticks
 
     def list_tables(self) -> list[str]:
         inspector = inspect(self.engine)
         return inspector.get_table_names()
 
-    def _map_pydantic_type(self, py_type: Any):
+    def _map_pydantic_type(self, py_type: Any) -> Any:
         if py_type is str:
             return String
         elif py_type is float:

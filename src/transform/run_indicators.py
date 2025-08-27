@@ -1,14 +1,14 @@
 from src.services import services
-from src.common.schema_registry import TechnicalFeatures
+from src.common.schema_registry import TechnicalFeatures, StockTick
 from src.utils.utils import load_config
-from src.common.schema_registry import StockTick
 from src.strategies.strategies import TechnicalIndicators
 import polars as pl
 import numpy as np
 import os
+from typing import Any
 
 
-indicator_table = os.getenv("DB_TABLE_INDICATORS")
+indicator_table = os.environ["DB_TABLE_INDICATORS"]
 
 pgdb = services.get_db_conn()
 
@@ -40,7 +40,7 @@ for ticker in tickers:
 
     for row in df_dict:
 
-        def safe_float(value):
+        def safe_float(value: Any) -> float:
             if value is None or (isinstance(value, float) and np.isnan(value)):
                 return 0.0
             return float(value)
