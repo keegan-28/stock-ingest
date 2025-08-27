@@ -7,14 +7,6 @@ import os
 from src.utils.utils import load_config
 
 
-# Instantiate kafka client
-# Instantiate database connection DONE
-# Broker API connection DONE
-
-# Retrieve data DONE
-# Write to DB DONE
-# Send kafka message with metadata
-
 broker = services.get_broker_conn()
 broker.connect()
 pgdb = services.get_db_conn()
