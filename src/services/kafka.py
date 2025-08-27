@@ -73,7 +73,7 @@ class KafkaConsumerClient:
         self.consumer = Consumer(config)
         self.consumer.subscribe(self.topics)
 
-    def consume_messages(self, callback, timeout: float = 1.0):
+    def consume_messages(self, timeout: float = 1.0):
         if self.consumer is None:
             raise AssertionError("Consumer not connected. Call connect() first.")
 
@@ -90,7 +90,7 @@ class KafkaConsumerClient:
 
             key = msg.key().decode("utf-8") if msg.key() else None
             value = json.loads(msg.value().decode("utf-8"))
-            callback(key, value)
+            return {key: value}
 
     def commit_offset(self):
         """Commit the current offsets."""

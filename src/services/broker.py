@@ -7,7 +7,7 @@ from alpaca.data import (
 from alpaca.data import StockBarsRequest, BarSet, Bar
 from datetime import datetime
 
-from ..common.schema_registry import StockTick
+from src.common.schema_registry import StockTick
 
 
 class AlpacaBroker:
@@ -48,13 +48,11 @@ class AlpacaBroker:
             start=last_bar_time,
             currency=SupportedCurrencies.USD,
             timeframe=timeframes[timeframe],
+            adjustment="split",
         )
-        raw_data: BarSet = self.data_client.get_stock_bars(
-            request_params=request_params
-        )
+        raw_data: BarSet = self.data_client.get_stock_bars(request_params=request_params)
         data: list[StockTick] = []
         raw_ticks: list[Bar] = raw_data[ticker]
-
         for bar in raw_ticks:
             if bar.timestamp > last_bar_time:
                 data.append(

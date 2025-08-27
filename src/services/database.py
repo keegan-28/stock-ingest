@@ -3,14 +3,13 @@ from sqlalchemy import create_engine, MetaData, Table, Column, inspect, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.types import String, Float, TIMESTAMP, Integer
 from pydantic import BaseModel
-from .logger import logger
+from datetime import datetime
+from src.common.logger import logger
 
 
 class PostgresDB:
     def __init__(self, user: str, password: str, host: str, port: int, db: str) -> None:
-        self.engine = create_engine(
-            f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
-        )
+        self.engine = create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}")
         self.metadata = MetaData()
 
     def table_exists(self, table_name: str) -> bool:
@@ -52,12 +51,12 @@ class PostgresDB:
         with self.engine.begin() as conn:
             conn.execute(stmt)
 
-    def fetch_items(self, table_name: str, query: str) -> list[dict[str, Any]]:
+    def fetch_items(self, table_name: str, query: str, params: dict | None = None) -> list:
         query = text(query)
 
         with self.engine.begin() as conn:
-            result = conn.execute(query).fetchall()
-        return [dict(row) for row in result]
+            ticks: list = conn.execute(query, parameters=params).fetchall()
+        return ticks
 
     def list_tables(self) -> list[str]:
         inspector = inspect(self.engine)
@@ -70,7 +69,7 @@ class PostgresDB:
             return Float
         elif py_type is int:
             return Integer
-        elif py_type is TIMESTAMP:
+        elif py_type is datetime:
             return TIMESTAMP
         else:
             return String
