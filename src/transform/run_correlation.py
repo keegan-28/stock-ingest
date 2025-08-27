@@ -4,8 +4,11 @@ from src.utils.utils import load_config
 import polars as pl
 from src.services import services
 import os
+from src.utils.logger import logger
 
+logger.info("Generating Correlations")
 
+raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
 correlation_table = os.environ["DB_TABLE_CORRELATION"]
 
 pgdb = services.get_db_conn()
@@ -13,20 +16,20 @@ pgdb = services.get_db_conn()
 if not pgdb.table_exists(correlation_table):
     pgdb.create_table(correlation_table, Correlation, ["timestamp", "ticker_1", "ticker_2"])
 
-config = load_config("config/tickers/tickers.yaml")
+config = load_config(os.environ["TICKER_CONFIG"])
 tickers = config["tickers"]
 
 columns = StockTick.model_fields.keys()
 
 
 raw_data = pgdb.fetch_items(
-    table_name="raw_data",
-    query="""
+    table_name=raw_ticker_table,
+    query=f"""
         SELECT *
         FROM (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY timestamp DESC) AS rn
-            FROM raw_data
+            FROM {raw_ticker_table}
         ) sub
         WHERE rn <= 20
         ORDER BY ticker, timestamp;

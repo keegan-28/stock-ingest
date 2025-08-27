@@ -36,7 +36,6 @@ try:
                 ticker=ticker, last_bar_time=last_bar_time, time_unit=1, timeframe="Day"
             )
         )
-        logger.info(f"Retrieved {len(ticker_data)}")
 except Exception as e:
     logger.error(e)
     raise e

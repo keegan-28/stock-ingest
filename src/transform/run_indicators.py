@@ -6,8 +6,10 @@ import polars as pl
 import numpy as np
 import os
 from typing import Any
+from src.utils.logger import logger
 
 
+raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
 indicator_table = os.environ["DB_TABLE_INDICATORS"]
 
 pgdb = services.get_db_conn()
@@ -15,15 +17,16 @@ pgdb = services.get_db_conn()
 if not pgdb.table_exists(indicator_table):
     pgdb.create_table(indicator_table, TechnicalFeatures, ["timestamp", "ticker"])
 
-config = load_config("config/tickers/tickers.yaml")
+config = load_config(os.environ["TICKER_CONFIG"])
 tickers = config["tickers"]
 
 columns = StockTick.model_fields.keys()
 
 for ticker in tickers:
+    logger.info(f"Running Strategies for {ticker}")
     raw_data = pgdb.fetch_items(
-        table_name="raw_data",
-        query="SELECT * FROM raw_data WHERE ticker = :ticker ORDER BY timestamp",
+        table_name=raw_ticker_table,
+        query=f"SELECT * FROM {raw_ticker_table} WHERE ticker = :ticker ORDER BY timestamp",
         params={"ticker": ticker},
     )
     df = pl.DataFrame(raw_data)
