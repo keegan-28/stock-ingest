@@ -11,7 +11,7 @@ class PostgresDB:
     def __init__(self, user: str, password: str, host: str, port: int, db: str) -> None:
         self.engine = create_engine(
             f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}",
-            isolation_level="READ COMMITTED"  # ensures immediate visibility
+            isolation_level="READ COMMITTED",  # ensures immediate visibility
         )
         self.metadata = MetaData()
 
@@ -66,12 +66,7 @@ class PostgresDB:
         inspector = inspect(self.engine)
         return inspector.get_table_names()
 
-    def delete_ticker(
-        self,
-        table_name: str,
-        column_name: str,
-        value: str
-    ) -> None:
+    def delete_ticker(self, table_name: str, column_name: str, value: str) -> None:
         """Delete all rows where column_name = value"""
         table = Table(table_name, self.metadata, autoload_with=self.engine)
 
@@ -82,7 +77,9 @@ class PostgresDB:
 
         with self.engine.begin() as conn:
             result = conn.execute(stmt)
-            logger.info(f"Deleted {result.rowcount} rows from '{table_name}' where {column_name}={value}")
+            logger.info(
+                f"Deleted {result.rowcount} rows from '{table_name}' where {column_name}={value}"
+            )
 
     def _map_pydantic_type(self, py_type: Any) -> Any:
         if py_type is str:

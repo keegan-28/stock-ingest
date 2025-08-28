@@ -124,7 +124,7 @@ class TechnicalIndicators:
         rolling_corrs = []
 
         for start in range(len(returns_pd) - window + 1):
-            window_df = returns_pd.iloc[start: start + window]
+            window_df = returns_pd.iloc[start : start + window]
             corr_matrix = window_df.corr()
             corr_matrix["timestamp"] = returns_pd.index[start + window - 1]
             rolling_corrs.append(corr_matrix)

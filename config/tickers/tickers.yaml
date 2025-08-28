@@ -1,5 +1,5 @@
 tickers:
-  - SPY
+  - VOOG
   - RKLB
   - SOFI
   - AAPL
@@ -9,7 +9,16 @@ tickers:
   - GOOG
   - RDW
   - OSCR
+  - GLD
+  - META
+  - AMZN
+  - BRK.B
+  - SCHD
   - NU
   - OKLO
   - SMR
   - SYM
+  - OPEN
+  - SMCI
+  - TTD
+  - PL

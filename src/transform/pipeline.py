@@ -45,9 +45,7 @@ def calculate_indicators(ticker_data: list[StockTick]) -> list[TechnicalFeatures
 
 
 def calculate_correlations(
-    pgdb: PostgresDB,
-    raw_ticker_table: str,
-    window: int = 90
+    pgdb: PostgresDB, raw_ticker_table: str, window: int = 90
 ) -> list[Correlation]:
     """
     Calculate rolling correlations for one ticker vs others.
@@ -64,9 +62,7 @@ def calculate_correlations(
     """
 
     # Fetch last N rows for the chosen ticker
-    tickers = pgdb.fetch_items(
-        query=f"SELECT DISTINCT ticker FROM {raw_ticker_table}"
-    )
+    tickers = pgdb.fetch_items(query=f"SELECT DISTINCT ticker FROM {raw_ticker_table}")
     tickers = [t[0] for t in tickers]
     raw_data = pgdb.fetch_items(
         query=f"""
