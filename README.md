@@ -36,3 +36,10 @@ flowchart TD
 ---
 
 
+
+
+## TODO:
+- 20, 60, 120 day correlation matrix compute + postgres + viz
+- api for easy access
+- remove a stock from all databases then recalculate
+- remove data older than 5 years 

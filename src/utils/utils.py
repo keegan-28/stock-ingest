@@ -8,6 +8,7 @@ def load_config(path: str) -> dict[str, str]:
             config = yaml.safe_load(file)
         assert "tickers" in config and isinstance(config["tickers"], list)
         assert isinstance(config, dict)
+        config["tickers"] = list(set(config["tickers"]))
         return config
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
