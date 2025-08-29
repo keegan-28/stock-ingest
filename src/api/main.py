@@ -6,19 +6,42 @@ import os
 from datetime import datetime as dt, timedelta
 import pytz
 from src.transform.pipeline import calculate_indicators, calculate_correlations
+from src.common.schema_registry import (
+    StockTick,
+    TechnicalFeatures,
+    Correlation,
+    TickerTable,
+    TickerCategory,
+    get_table_schema,
+    Table,
+)
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Do Nothing on startup
+    yield
+    pgdb.engine.dispose(close=True)
+    broker.close_connection()
+    logger.info("Closed all connections")
+
 
 app = FastAPI(
     title="WATCHTOWER",
     root_path="/api/v1",
     openapi_url="/openapi.json",
     docs_url="/docs",
-    version="0.0.0"
+    version="0.0.0",
+    lifespan=lifespan,
 )
 
 pgdb = services.get_db_conn()
 broker = services.get_broker_conn()
 broker.connect()
 
+
+ticker_table = os.environ["DB_TABLE_TICKERS"]
 raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
 indicator_table = os.environ["DB_TABLE_INDICATORS"]
 correlation_table = os.environ["DB_TABLE_CORRELATION"]
@@ -29,12 +52,22 @@ def root():
     return RedirectResponse("/api/v1/docs")
 
 
-@app.get('/tables')
-def get_table_names() -> list[str]:
+@app.post("/tables/create")
+def create_tables() -> list[str]:
+    pgdb.create_table(raw_ticker_table, StockTick)
+    pgdb.create_table(indicator_table, TechnicalFeatures)
+    pgdb.create_table(correlation_table, Correlation)
+    pgdb.create_table(ticker_table, TickerTable)
+    return [raw_ticker_table, indicator_table, correlation_table]
+
+
+@app.get("/tables", response_model=list[Table])
+def get_table_names() -> list[Table]:
     return [
-        raw_ticker_table,
-        indicator_table,
-        correlation_table
+        get_table_schema(ticker_table, TickerTable),
+        get_table_schema(raw_ticker_table, StockTick),
+        get_table_schema(indicator_table, TechnicalFeatures),
+        get_table_schema(correlation_table, Correlation),
     ]
 
 
@@ -43,18 +76,19 @@ def get_all_tickers() -> dict[str, list[str]]:
     try:
         query = f"SELECT DISTINCT ticker FROM {raw_ticker_table}"
         rows = pgdb.fetch_items(query=query)
-        if not rows:
-            raise HTTPException(status_code=404, detail="No tickers found")
-        tickers = [row[0] for row in rows]
-        return {"tickers": tickers}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
+    if not rows:
+        raise HTTPException(status_code=404, detail="No tickers found")
+    tickers = [row[0] for row in rows]
+    return {"tickers": tickers}
+
 
 @app.post("/tickers")
-def add_ticker(ticker: str) -> str:
+def add_ticker(ticker: str, category: TickerCategory) -> str:
     ticker = ticker.upper()
+    ticker_row = TickerTable(ticker=ticker, last_updated=dt.now(tz=pytz.utc), category=category)
     # Run ingest + indicators + correlation
     logger.info(f"Retrieving data for ticker: {ticker}")
     last_bar_time = dt.now(tz=pytz.utc) - timedelta(days=5 * 365)
@@ -68,11 +102,10 @@ def add_ticker(ticker: str) -> str:
     # Run correlations
     correlations = calculate_correlations(pgdb, raw_ticker_table)
 
-    pgdb.insert_items(raw_ticker_table, ticker_data, conflict_cols=["ticker", "timestamp"])
-    pgdb.insert_items(indicator_table, indicators, conflict_cols=["ticker", "timestamp"])
-    pgdb.insert_items(
-        correlation_table, correlations, conflict_cols=["timestamp", "ticker_1", "ticker_2"]
-    )
+    pgdb.insert_items(ticker_table, [ticker_row])
+    pgdb.insert_items(raw_ticker_table, ticker_data)
+    pgdb.insert_items(indicator_table, indicators)
+    pgdb.insert_items(correlation_table, correlations)
     return ticker
 
 

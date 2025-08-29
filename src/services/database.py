@@ -23,15 +23,18 @@ class PostgresDB:
         self,
         table_name: str,
         table_model: Type[BaseModel],
-        primary_keys: list[str] | None = None,
     ) -> None:
         if self.table_exists(table_name):
             logger.info(f"{table_name} already exists.")
             return
 
         columns = []
-        for name, field in table_model.model_fields.items():
-            col_type = self._map_pydantic_type(field.annotation)
+        primary_keys = []
+        for name, field_info in table_model.model_fields.items():
+            if field_info.json_schema_extra and "primary_key" in field_info.json_schema_extra:
+                primary_keys.append(name)
+
+            col_type = self._map_pydantic_type(field_info.annotation)
             pk = primary_keys is not None and name in primary_keys
             columns.append(Column(name, col_type, primary_key=pk))
 
@@ -42,15 +45,14 @@ class PostgresDB:
         self,
         table_name: str,
         items: list[BaseModel],
-        conflict_cols: list[str] | None = None,
     ) -> None:
         """Insert items and commit immediately"""
         table = Table(table_name, self.metadata, autoload_with=self.engine)
         values = [item.model_dump() for item in items]
 
         stmt = insert(table).values(values)
-        if conflict_cols:
-            stmt = stmt.on_conflict_do_nothing(index_elements=conflict_cols)
+        primary_keys = [c.name for c in table.primary_key]
+        stmt = stmt.on_conflict_do_nothing(index_elements=primary_keys)
 
         # Use a single transaction that commits automatically
         with self.engine.begin() as conn:

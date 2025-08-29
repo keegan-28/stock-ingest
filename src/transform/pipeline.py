@@ -85,7 +85,6 @@ def calculate_correlations(
     # Convert to Correlation models
     return [
         Correlation(
-            timestamp=row.get("timestamp"),
             ticker_1=row.get("ticker1"),
             ticker_2=row.get("ticker2"),
             correlation=row.get("correlation"),

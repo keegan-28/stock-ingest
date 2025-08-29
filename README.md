@@ -42,5 +42,7 @@ flowchart TD
 ```
 
 ## TODO:
-- 20, 60, 120 day correlation matrix compute + postgres + viz
-- remove data older than 5 years 
+- Error handling
+- Sort Tickers By Watchlist + Portfolio
+- Remove data older than 5 years 
+- 
