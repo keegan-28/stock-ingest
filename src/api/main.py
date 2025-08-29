@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from src.services import services
 from src.utils.logger import logger
 import os
@@ -6,7 +7,13 @@ from datetime import datetime as dt, timedelta
 import pytz
 from src.transform.pipeline import calculate_indicators, calculate_correlations
 
-app = FastAPI(title="WATCHTOWER", version="0.0.0")
+app = FastAPI(
+    title="WATCHTOWER",
+    root_path="/api/v1",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    version="0.0.0"
+)
 
 pgdb = services.get_db_conn()
 broker = services.get_broker_conn()
@@ -17,7 +24,21 @@ indicator_table = os.environ["DB_TABLE_INDICATORS"]
 correlation_table = os.environ["DB_TABLE_CORRELATION"]
 
 
-@app.get("/api/v1/tickers")
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/api/v1/docs")
+
+
+@app.get('/tables')
+def get_table_names() -> list[str]:
+    return [
+        raw_ticker_table,
+        indicator_table,
+        correlation_table
+    ]
+
+
+@app.get("/tickers")
 def get_all_tickers() -> dict[str, list[str]]:
     try:
         query = f"SELECT DISTINCT ticker FROM {raw_ticker_table}"
@@ -31,7 +52,7 @@ def get_all_tickers() -> dict[str, list[str]]:
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 
-@app.post("/api/v1/tickers")
+@app.post("/tickers")
 def add_ticker(ticker: str) -> str:
     ticker = ticker.upper()
     # Run ingest + indicators + correlation
@@ -55,7 +76,7 @@ def add_ticker(ticker: str) -> str:
     return ticker
 
 
-@app.delete("/api/v1/tickers/{ticker}")
+@app.delete("/tickers/{ticker}")
 def delete_ticker(ticker: str) -> dict[str, list[str]]:
     ticker = ticker.upper()
     logger.info(f"Removing ticker: {ticker} from all tables.")
@@ -66,15 +87,22 @@ def delete_ticker(ticker: str) -> dict[str, list[str]]:
     return get_all_tickers()
 
 
-@app.post("/api/v1/jobs/run_all")
+@app.post("/jobs/run_all")
 def run_all_tickers():
-    # Run Ingest
-    # Run Indicators
-    # Run Correlation
-    pass
+    tickers = get_all_tickers()
+    logger.info(tickers)
+    completed_tickers = []
+    for ticker in tickers["tickers"]:
+        try:
+            _ = add_ticker(ticker)
+            completed_tickers.append(ticker)
+        except Exception as e:
+            logger.error(f"{ticker}: Internal server error: {e}")
+
+    return completed_tickers
 
 
-@app.post("/api/v1/jobs/{ticker}/run")
+@app.post("/jobs/{ticker}/run")
 def run_single_ticker(ticker: str):
     # Run Ingest
     # Run Indicators
