@@ -34,11 +34,19 @@ class TechnicalIndicators:
         return df.with_columns(pl.col("volume").rolling_mean(window_size).alias(output_col))
 
     @staticmethod
+    def ema(df: pl.DataFrame, period: int, column: str, alias: str) -> pl.DataFrame:
+        return df.with_columns(pl.col(column).ewm_mean(com=period - 1).alias(alias))
+
+    @staticmethod
     def macd(df: pl.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9) -> pl.DataFrame:
-        df = TechnicalIndicators.rolling_mean(df, fast, "close", "ema_fast")
-        df = TechnicalIndicators.rolling_mean(df, slow, "close", "ema_slow")
+        df = TechnicalIndicators.ema(df, fast, "close", "ema_fast")
+        df = TechnicalIndicators.ema(df, slow, "close", "ema_slow")
+
         df = df.with_columns((pl.col("ema_fast") - pl.col("ema_slow")).alias("macd"))
-        df = TechnicalIndicators.rolling_mean(df, signal, "macd", "macd_signal")
+
+        # Calculate the signal line (EMA of the MACD line)
+        df = TechnicalIndicators.ema(df, signal, "macd", "macd_signal")
+
         return df
 
     @staticmethod

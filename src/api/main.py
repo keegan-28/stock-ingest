@@ -62,7 +62,7 @@ def create_tables() -> list[str]:
 
 
 @app.get("/tables", response_model=list[Table])
-def get_table_names() -> list[Table]:
+def get_table_schemas() -> list[Table]:
     return [
         get_table_schema(ticker_table, TickerTable),
         get_table_schema(raw_ticker_table, StockTick),
@@ -74,15 +74,22 @@ def get_table_names() -> list[Table]:
 @app.get("/tickers")
 def get_all_tickers() -> dict[str, list[str]]:
     try:
-        query = f"SELECT DISTINCT ticker FROM {raw_ticker_table}"
+        query = f"SELECT ticker, category FROM {ticker_table} ORDER BY category;"
         rows = pgdb.fetch_items(query=query)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
     if not rows:
-        raise HTTPException(status_code=404, detail="No tickers found")
-    tickers = [row[0] for row in rows]
-    return {"tickers": tickers}
+        logger.warning("No Tickers Found.")
+        return {}
+
+    grouped_tickers: dict[str, list[str]] = {}
+    for ticker, category in rows:
+        if category not in grouped_tickers:
+            grouped_tickers[category] = []
+        grouped_tickers[category].append(ticker)
+
+    return grouped_tickers
 
 
 @app.post("/tickers")
@@ -122,15 +129,16 @@ def delete_ticker(ticker: str) -> dict[str, list[str]]:
 
 @app.post("/jobs/run_all")
 def run_all_tickers():
-    tickers = get_all_tickers()
-    logger.info(tickers)
+    # TODO: Use ThreadPool
     completed_tickers = []
-    for ticker in tickers["tickers"]:
-        try:
-            _ = add_ticker(ticker)
-            completed_tickers.append(ticker)
-        except Exception as e:
-            logger.error(f"{ticker}: Internal server error: {e}")
+
+    for category, tickers in get_all_tickers().items():
+        for ticker in tickers:
+            try:
+                _ = add_ticker(ticker, TickerCategory(category))
+                completed_tickers.append(ticker)
+            except Exception as e:
+                logger.error(f"{ticker}: Internal server error: {e}")
 
     return completed_tickers
 
