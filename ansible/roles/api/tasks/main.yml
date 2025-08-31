@@ -1,0 +1,27 @@
+- name: Create Project Directory
+  file:
+    path: "{{ ansible_base_dir }}"
+    state: directory
+    recurse: yes
+
+- name: Save Docker image as a tar file
+  ansible.builtin.command: "docker save -o ./{{ docker_image_name }}.tar {{ docker_image_name }}:latest"
+  delegate_to: localhost
+  become: true
+
+- name: Transfer the image tarball to the Raspberry Pi
+  ansible.builtin.copy:
+    src: "./{{ docker_image_name }}.tar"
+    dest: "{{ ansible_base_dir }}/{{ docker_image_name }}.tar"
+
+- name: Load the Docker image on the Raspberry Pi
+  ansible.builtin.command: "docker load -i {{ ansible_base_dir }}/{{ docker_image_name }}.tar"
+  
+- name: Run the container from the loaded image
+  community.docker.docker_container:
+    name: "{{ docker_image_name }}"
+    image: "{{ docker_image_name }}:latest"
+    state: started
+    ports:
+      - "8000:8000"
+    restart_policy: always

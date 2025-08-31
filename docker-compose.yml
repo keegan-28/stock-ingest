@@ -1,7 +1,7 @@
 services:
-  watchtower:
+  bankvault:
     build: .
-    container_name: watchtower_api
+    container_name: bankvault
     ports:
       - "8000:8000"
     env_file:

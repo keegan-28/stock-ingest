@@ -1,0 +1,5 @@
+- name: Deploy BANKVAULT
+  hosts: raspberrypi
+  become: yes
+  roles:
+    - api

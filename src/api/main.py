@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from src.services import services
 from src.utils.logger import logger
 import os
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="WATCHTOWER",
+    title="BANKVAULT",
     root_path="/api/v1",
     openapi_url="/openapi.json",
     docs_url="/docs",
@@ -46,6 +46,13 @@ raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
 indicator_table = os.environ["DB_TABLE_INDICATORS"]
 correlation_table = os.environ["DB_TABLE_CORRELATION"]
 
+TABLE_MAPPING = {
+    ticker_table: TickerTable,
+    raw_ticker_table: StockTick,
+    indicator_table: TechnicalFeatures,
+    correlation_table: Correlation
+}
+
 
 @app.get("/", include_in_schema=False)
 def root():
@@ -54,20 +61,18 @@ def root():
 
 @app.post("/tables/create")
 def create_tables() -> list[str]:
-    pgdb.create_table(raw_ticker_table, StockTick)
-    pgdb.create_table(indicator_table, TechnicalFeatures)
-    pgdb.create_table(correlation_table, Correlation)
-    pgdb.create_table(ticker_table, TickerTable)
-    return [raw_ticker_table, indicator_table, correlation_table]
+    tables_created: list[str] = []
+    for name, model in TABLE_MAPPING.items():
+        if pgdb.table_exists(name):
+            pgdb.create_table(name, model)
+            tables_created.append(name)
+    return tables_created
 
 
 @app.get("/tables", response_model=list[Table])
 def get_table_schemas() -> list[Table]:
     return [
-        get_table_schema(ticker_table, TickerTable),
-        get_table_schema(raw_ticker_table, StockTick),
-        get_table_schema(indicator_table, TechnicalFeatures),
-        get_table_schema(correlation_table, Correlation),
+        get_table_schema(name, model) for name, model in TABLE_MAPPING.items()
     ]
 
 
@@ -145,7 +150,18 @@ def run_all_tickers():
 
 @app.post("/jobs/{ticker}/run")
 def run_single_ticker(ticker: str):
-    # Run Ingest
+    logger.info(f"Retrieving data for ticker: {ticker}")
+    last_bar_time = dt.now(tz=pytz.utc) - timedelta(days=5 * 365)
+    ticker_data = broker.get_stock_bars_live(
+        ticker=ticker, last_bar_time=last_bar_time, time_unit=1, timeframe="Day"
+    )
+
     # Run Indicators
-    # Run Correlation
-    pass
+    indicators = calculate_indicators(ticker_data=ticker_data)
+
+    # Run correlations
+    correlations = calculate_correlations(pgdb, raw_ticker_table)
+    pgdb.insert_items(raw_ticker_table, ticker_data)
+    pgdb.insert_items(indicator_table, indicators)
+    pgdb.insert_items(correlation_table, correlations)
+    return 

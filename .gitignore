@@ -13,3 +13,4 @@ wheels/
 # Application
 volumes/
 password.txt
+ansible
