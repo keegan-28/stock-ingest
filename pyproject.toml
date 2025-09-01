@@ -1,0 +1,30 @@
+[project]
+name = "ticker-ingest"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alpaca-py>=0.42.0",
+    "confluent-kafka>=2.11.1",
+    "fastapi>=0.116.1",
+    "polars>=1.32.3",
+    "psycopg2-binary>=2.9.10",
+    "pyarrow>=21.0.0",
+    "pydantic>=2.11.7",
+    "pyyaml>=6.0.2",
+    "sqlalchemy>=2.0.43",
+    "uvicorn>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "ruff>=0.12.9",
+]
+
+[tool.ruff]
+line-length = 100
+
+[mypy]
+plugins = ["pydantic.mypy"]
