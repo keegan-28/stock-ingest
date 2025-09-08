@@ -1,4 +1,4 @@
-from src.common.schema_registry import TechnicalFeatures, StockTick, Correlation
+from src.common.schema_registry import TechnicalFeatures, StockTicks, Correlations
 from src.strategies.strategies import TechnicalIndicators
 import polars as pl
 from typing import Any
@@ -6,7 +6,7 @@ import numpy as np
 from src.services.database import PostgresDB
 
 
-def calculate_indicators(ticker_data: list[StockTick]) -> list[TechnicalFeatures]:
+def calculate_indicators(ticker_data: list[StockTicks]) -> list[TechnicalFeatures]:
     df = pl.DataFrame([item.model_dump() for item in ticker_data])
     df = TechnicalIndicators.rolling_mean(df, 50, "close", "ma_50")
     df = TechnicalIndicators.rolling_mean(df, 200, "close", "ma_200")
@@ -46,7 +46,7 @@ def calculate_indicators(ticker_data: list[StockTick]) -> list[TechnicalFeatures
 
 def calculate_correlations(
     pgdb: PostgresDB, raw_ticker_table: str, window: int = 90
-) -> list[Correlation]:
+) -> list[Correlations]:
     """
     Calculate rolling correlations for one ticker vs others.
 
@@ -84,7 +84,7 @@ def calculate_correlations(
 
     # Convert to Correlation models
     return [
-        Correlation(
+        Correlations(
             ticker_1=row.get("ticker1"),
             ticker_2=row.get("ticker2"),
             correlation=row.get("correlation"),

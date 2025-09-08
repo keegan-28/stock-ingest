@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field
 from datetime import datetime
 from enum import Enum
-from typing import get_args, get_origin, Union
+from typing import Type
+from sqlmodel import SQLModel, Table as SQLTable
+from pydantic import BaseModel, Field as pydantic_field
 
 # =====================TABLE SCHEMAS============================
 
@@ -11,15 +13,16 @@ class TickerCategory(str, Enum):
     WATCHLIST = "watchlist"
 
 
-class TickerTable(BaseModel):
-    ticker: str = Field(..., primary_key=True)
+class Tickers(SQLModel, table=True):
+    ticker: str = Field(primary_key=True, index=True)
     last_updated: datetime
     category: TickerCategory
 
 
-class StockTick(BaseModel):
-    ticker: str = Field(..., primary_key=True)
-    timestamp: datetime = Field(..., primary_key=True)
+class StockTicks(SQLModel, table=True):
+    ticker: str = Field(primary_key=True, index=True)
+    timestamp: datetime = Field(primary_key=True, index=True)
+
     open: float
     high: float
     low: float
@@ -27,85 +30,91 @@ class StockTick(BaseModel):
     volume: float
 
 
-class Correlation(BaseModel):
-    ticker_1: str = Field(
-        ..., description="Stock symbol or instrument identifier", primary_key=True
-    )
-    ticker_2: str = Field(
-        ..., description="Stock symbol or instrument identifier", primary_key=True
-    )
+class Correlations(SQLModel, table=True):
+    ticker_1: str = Field(primary_key=True, index=True, description="Stock symbol or instrument identifier")
+    ticker_2: str = Field(primary_key=True, index=True, description="Stock symbol or instrument identifier")
 
     correlation: float = Field(..., ge=-1, le=1)
 
 
-class TechnicalFeatures(BaseModel):
-    ticker: str = Field(..., description="Stock symbol or instrument identifier", primary_key=True)
-    timestamp: datetime = Field(
-        ..., description="Trading day timestamp (end of day)", primary_key=True
-    )
+class TechnicalFeatures(SQLModel, table=True):
+    ticker: str = Field(primary_key=True, index=True, description="Stock symbol or instrument identifier")
+    timestamp: datetime = Field(primary_key=True, index=True, description="Trading day timestamp (end of day)")
 
     close: float
 
-    ma_50: float | None = Field(None, description="50-day simple moving average of close")
-    ma_200: float | None = Field(None, description="200-day simple moving average of close")
-    rolling_std_50: float | None = Field(
-        None, description="50-day rolling standard deviation (volatility)"
-    )
-    rolling_vol_avg_50: float | None = Field(None, description="50-day average of volume")
+    ma_50: float | None = Field(default=None, description="50-day simple moving average of close")
+    ma_200: float | None = Field(default=None, description="200-day simple moving average of close")
+    rolling_std_50: float | None = Field(default=None, description="50-day rolling standard deviation (volatility)")
+    rolling_vol_avg_50: float | None = Field(default=None, description="50-day average of volume")
 
-    rsi_14: float | None = Field(None, description="14-day Relative Strength Index")
+    rsi_14: float | None = Field(default=None, description="14-day Relative Strength Index")
 
-    macd: float | None = Field(None, description="MACD line (12 EMA - 26 EMA)")
-    macd_signal: float | None = Field(None, description="MACD signal line (9 EMA of MACD)")
+    macd: float | None = Field(default=None, description="MACD line (12 EMA - 26 EMA)")
+    macd_signal: float | None = Field(default=None, description="MACD signal line (9 EMA of MACD)")
 
-    bb_upper: float | None = Field(None, description="Upper Bollinger Band (20 MA + 2*std)")
-    bb_lower: float | None = Field(None, description="Lower Bollinger Band (20 MA - 2*std)")
+    bb_upper: float | None = Field(default=None, description="Upper Bollinger Band (20 MA + 2*std)")
+    bb_lower: float | None = Field(default=None, description="Lower Bollinger Band (20 MA - 2*std)")
+
+
+class Greeks(BaseModel):
+    delta: float = pydantic_field(..., gte=-1.0, le=1.0)
+    gamma: float = pydantic_field(..., gte=0.0)
+    theta: float
+    vega: float = pydantic_field(..., gt=0.0)
+    rho: float
+
+
+class ContractType(str, Enum):
+    CALL = "call"
+    PUT = "put"
+
+
+class OptionSnapshot(BaseModel):
+    ticker: str
+    option_symbol: str = pydantic_field(..., primary_key=True)
+    contract_type: ContractType
+    strike_price: float
+    expiration_date: datetime
+
+    trade_timestamp: datetime
+    trade_price: float
+    trade_size: float
+
+    quote_timestamp: datetime
+    quote_bid_price: float
+    quote_ask_price: float
+    quote_bid_size: float
+
+    implied_volatility: float
+    greeks: Greeks
 
 
 # ====================================API RETURN SCHEMAS=====================================
 
 
-class Column(BaseModel):
+class ColumnSchema(BaseModel):
     name: str
-    column_type: str
-    indexed: bool = False
+    type_: str
+    is_primary_key: bool
 
 
-class Table(BaseModel):
-    table_name: str
-    columns: list[Column]
+class TableSchema(BaseModel):
+    name: str
+    columns: list[ColumnSchema]
 
 
 # ===================================METHODS==============================
 
 
-def get_table_schema(table_name: str, model: BaseModel) -> Table:
-    columns = []
-
-    for field_name, field_info in model.model_fields.items():
-        is_primary_key = False
-        if field_info.json_schema_extra and "primary_key" in field_info.json_schema_extra:
-            is_primary_key = True
-        # Determine the base column type, correctly handling unions
-        field_type = field_info.annotation
-        origin = get_origin(field_type)
-
-        # Check if it's a Union type, including UnionType from Python 3.10+
-        if origin is Union or str(origin) == "<class 'types.UnionType'>":
-            union_args = get_args(field_type)
-            # Find the first non-None type in the union
-            for arg in union_args:
-                if arg is not type(None):
-                    column_type = arg.__name__
-                    break
-            else:
-                # Fallback for unions that might only contain None
-                column_type = "Any"
-        else:
-            column_type = field_type.__name__
-
-        columns.append(
-            Column(name=field_name, column_type=column_type, is_primary_key=is_primary_key)
+def get_table_schema(model: type[SQLModel]) -> TableSchema:
+    table = model.__table__
+    columns = [
+        ColumnSchema(
+            name=col.name,
+            type_=str(col.type),
+            is_primary_key=col.primary_key
         )
-
-    return Table(table_name=table_name, columns=columns)
+        for col in table.columns
+    ]
+    return TableSchema(name=table.name, columns=columns)
