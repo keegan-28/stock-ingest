@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from src.services import services
 from src.utils.logger import logger
-from sqlmodel import SQLModel, Table as SQLTable
+from sqlmodel import SQLModel
 from datetime import datetime as dt, timedelta
 import pytz
 from src.transform.pipeline import calculate_indicators, calculate_correlations
@@ -14,7 +14,7 @@ from src.common.schema_registry import (
     TickerCategory,
     get_table_schema,
     TableSchema,
-    OptionSnapshot
+    OptionChain,
 )
 from contextlib import asynccontextmanager
 
@@ -41,20 +41,7 @@ pgdb = services.get_db_conn()
 broker = services.get_broker_conn()
 broker.connect()
 
-
-# ticker_table = os.environ["DB_TABLE_TICKERS"]
-# raw_ticker_table = os.environ["DB_TABLE_RAW_DATA"]
-# indicator_table = os.environ["DB_TABLE_INDICATORS"]
-# correlation_table = os.environ["DB_TABLE_CORRELATION"]
-# options_table = os.environ["DB_OPTIONS_TABLE"]
-
-TABLE_MAPPING: set[SQLModel] = {
-    Tickers,
-    StockTicks,
-    TechnicalFeatures,
-    Correlations,
-    # OptionSnapshot
-}
+TABLE_MAPPING: set[SQLModel] = {Tickers, StockTicks, TechnicalFeatures, Correlations, OptionChain}
 
 
 @app.get("/", include_in_schema=False)
@@ -108,7 +95,6 @@ def add_ticker(ticker: str, category: TickerCategory) -> str:
     ticker_data = broker.get_stock_bars_live(
         ticker=ticker, last_bar_time=last_bar_time, time_unit=1, timeframe="Day"
     )
-    # options = broker.get_options_chains(ticker)
 
     # Run Indicators
     indicators = calculate_indicators(ticker_data=ticker_data)
@@ -120,7 +106,7 @@ def add_ticker(ticker: str, category: TickerCategory) -> str:
     pgdb.insert_items(ticker_data)
     pgdb.insert_items(indicators)
     pgdb.insert_items(correlations)
-    # pgdb.insert_items(options_table, options)
+
     return ticker
 
 
@@ -143,28 +129,9 @@ def run_all_tickers():
     for category, tickers in get_all_tickers().items():
         for ticker in tickers:
             try:
-                _ = add_ticker(ticker, TickerCategory(category))
+                _ = add_ticker(ticker, TickerCategory(category.lower()))
                 completed_tickers.append(ticker)
             except Exception as e:
                 logger.error(f"{ticker}: Internal server error: {e}")
 
     return completed_tickers
-
-
-# @app.post("/jobs/{ticker}/run")
-# def run_single_ticker(ticker: str):
-#     logger.info(f"Retrieving data for ticker: {ticker}")
-#     last_bar_time = dt.now(tz=pytz.utc) - timedelta(days=5 * 365)
-#     ticker_data = broker.get_stock_bars_live(
-#         ticker=ticker, last_bar_time=last_bar_time, time_unit=1, timeframe="Day"
-#     )
-
-#     # Run Indicators
-#     indicators = calculate_indicators(ticker_data=ticker_data)
-
-#     # Run correlations
-#     correlations = calculate_correlations(pgdb, raw_ticker_table)
-#     pgdb.insert_items(raw_ticker_table, ticker_data)
-#     pgdb.insert_items(indicator_table, indicators)
-#     pgdb.insert_items(correlation_table, correlations)
-#     return ticker

@@ -4,14 +4,16 @@ from alpaca.data import (
     TimeFrameUnit,
     TimeFrame,
     OptionHistoricalDataClient,
-    OptionChainRequest,
     OptionsSnapshot,
-    ContractType,
+    OptionChainRequest,
 )
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import GetOptionContractsRequest
+from alpaca.trading.models import OptionContract
 from alpaca.data import StockBarsRequest, BarSet, Bar
 from datetime import datetime, timedelta
 import pytz
-from src.common.schema_registry import StockTicks, ContractType, OptionSnapshot, Greeks
+from src.common.schema_registry import StockTicks, ContractType, OptionChain
 from src.utils.logger import logger
 
 
@@ -22,6 +24,7 @@ class AlpacaBroker:
 
         self.data_client = None
         self.options_client = None
+        self.trading_client = None
 
     def connect(self) -> None:
         self.data_client = StockHistoricalDataClient(
@@ -30,6 +33,7 @@ class AlpacaBroker:
         self.options_client = OptionHistoricalDataClient(
             api_key=self.__api_key, secret_key=self.__api_secret
         )
+        self.trading_client = TradingClient(api_key=self.__api_key, secret_key=self.__api_secret)
 
     def close_connection(self) -> None:
         self.data_client = None
@@ -83,13 +87,13 @@ class AlpacaBroker:
         ticker: str,
         weeks_gte: int = 3,
         weeks_lte: int = 4,
-    ) -> list[OptionSnapshot]:
+    ) -> list[OptionChain]:
         def extract_strike_price(symbol: str):
             strike_str = symbol[-8:]
             return float(f"{int(strike_str[:-3])}.{strike_str[-3:]}")
 
         now = datetime.now(pytz.utc)
-        data: list[OptionSnapshot] = []
+        data: list[OptionChain] = []
         for c_type in (ContractType.PUT, ContractType.CALL):
             options = self.options_client.get_option_chain(
                 request_params=OptionChainRequest(
@@ -99,18 +103,32 @@ class AlpacaBroker:
                     expiration_date_gte=now.date() + timedelta(weeks=weeks_gte),
                     expiration_date_lte=now.date() + timedelta(weeks=weeks_lte),
                 )
-            )   
+            )
+            option_contract = self.trading_client.get_option_contracts(
+                request=GetOptionContractsRequest(
+                    underlying_symbol=ticker,
+                    type=c_type,
+                    expiration_date_gte=now.date() + timedelta(weeks=weeks_gte),
+                    expiration_date_lte=now.date() + timedelta(weeks=weeks_lte),
+                )
+            )
+            for contract in option_contract.option_contracts:
+                try:
+                    model = options[contract.symbol]
+                except KeyError:
+                    continue
 
-            for key, model in options.items():
                 assert isinstance(model, OptionsSnapshot)
+                assert isinstance(contract, OptionContract)
+                # option_contract = self.trading_client.get_option_contracts(key)
                 try:
                     data.append(
-                        OptionSnapshot(
+                        OptionChain(
                             ticker=ticker,
-                            option_symbol=key,
+                            option_symbol=contract.symbol,
                             contract_type=c_type,
-                            strike_price=extract_strike_price(key),
-                            expiration_date=datetime.strptime(key[4:10], '%y%m%d'),
+                            strike_price=extract_strike_price(contract.symbol),
+                            expiration_date=datetime.strptime(contract.symbol[4:10], "%y%m%d"),
                             trade_timestamp=model.latest_trade.timestamp,
                             trade_size=model.latest_trade.size,
                             trade_price=model.latest_trade.price,
@@ -119,13 +137,12 @@ class AlpacaBroker:
                             quote_bid_size=model.latest_quote.bid_size,
                             quote_timestamp=model.latest_quote.timestamp,
                             implied_volatility=model.implied_volatility,
-                            greeks=Greeks(
-                                delta=model.greeks.delta,
-                                gamma=model.greeks.gamma,
-                                theta=model.greeks.theta,
-                                vega=model.greeks.vega,
-                                rho=model.greeks.rho,
-                            ),
+                            open_interest=contract.open_interest,
+                            delta=model.greeks.delta,
+                            gamma=model.greeks.gamma,
+                            theta=model.greeks.theta,
+                            vega=model.greeks.vega,
+                            rho=model.greeks.rho,
                         )
                     )
                 except AttributeError:

@@ -1,11 +1,9 @@
-from typing import Any, Type
+from typing import Any
 from sqlmodel import SQLModel
+import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import create_engine, Table, inspect, text, delete
+from sqlalchemy import create_engine, inspect, text, delete
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.types import String, Float, TIMESTAMP, Integer, JSON
-from pydantic import BaseModel
-from datetime import datetime
 from src.utils.logger import logger
 
 
@@ -21,7 +19,7 @@ class PostgresDB:
         inspector = inspect(self.engine)
         return inspector.has_table(table_name)
 
-    def create_table(self, table_model: Type[SQLModel]) -> None:
+    def create_table(self, table_model: type[SQLModel]) -> None:
         """Create table for a SQLModel if it doesn't exist"""
         table_name = table_model.__tablename__
         if self.table_exists(table_name):
@@ -51,6 +49,10 @@ class PostgresDB:
             logger.exception(f"Failed to insert items into {table.name}: {e}")
             raise
 
+    def insert_items_df(self, df: pd.DataFrame, table_name: str):
+        with self.engine.begin() as conn:
+            df.to_sql(table_name, conn, if_exists="append", index=False)
+
     def fetch_items(self, query: str, params: dict | None = None) -> list[Any]:
         """Run raw SQL query and return results"""
         with self.engine.connect() as conn:
@@ -61,7 +63,7 @@ class PostgresDB:
         inspector = inspect(self.engine)
         return inspector.get_table_names()
 
-    def delete_ticker(self, model: Type[SQLModel], column_name: str, value: str) -> None:
+    def delete_ticker(self, model: type[SQLModel], column_name: str, value: str) -> None:
         if not hasattr(model, column_name):
             raise ValueError(f"Column '{column_name}' does not exist in model '{model.__name__}'")
 
