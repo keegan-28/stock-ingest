@@ -1,6 +1,0 @@
-db_user: admin
-db_host: "{{ ansible_host }}"
-db_port: "5432"
-db_name: postgres_database
-
-docker_image_name: stock-ingest-bankvault
