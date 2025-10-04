@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, Sequence
+from sqlalchemy.engine import Row
 from sqlmodel import SQLModel
 import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,7 +22,7 @@ class PostgresDB:
 
     def create_table(self, table_model: type[SQLModel]) -> None:
         """Create table for a SQLModel if it doesn't exist"""
-        table_name = table_model.__tablename__
+        table_name: str = table_model.__tablename__
         if self.table_exists(table_name):
             logger.info(f"{table_name} already exists.")
             return
@@ -57,11 +58,11 @@ class PostgresDB:
             logger.exception(f"Failed to insert items into {table.name}: {e}")
             raise
 
-    def insert_items_df(self, df: pd.DataFrame, table_name: str):
+    def insert_items_df(self, df: pd.DataFrame, table_name: str) -> None:
         with self.engine.begin() as conn:
             df.to_sql(table_name, conn, if_exists="append", index=False)
 
-    def fetch_items(self, query: str, params: dict | None = None) -> list[Any]:
+    def fetch_items(self, query: str, params: dict | None = None) -> Sequence[Row[Any]]:
         """Run raw SQL query and return results"""
         with self.engine.connect() as conn:
             result = conn.execute(text(query), parameters=params)
