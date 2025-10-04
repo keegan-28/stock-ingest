@@ -6,16 +6,15 @@ from sqlmodel import SQLModel
 from datetime import datetime as dt, timedelta
 import pytz
 from src.transform.pipeline import calculate_indicators, calculate_correlations
-from src.common.schema_registry import (
+from src.schema_registry.sql_tables import (
     StockTicks,
     TechnicalFeatures,
     Correlations,
     Tickers,
-    TickerCategory,
+    TradeAction,
     get_table_schema,
-    TableSchema,
-    OptionChain,
 )
+from src.schema_registry.response_models import TickerCategory, TableSchema, Trade
 from contextlib import asynccontextmanager
 
 
@@ -41,7 +40,7 @@ pgdb = services.get_db_conn()
 broker = services.get_broker_conn()
 broker.connect()
 
-TABLE_MAPPING: set[SQLModel] = {Tickers, StockTicks, TechnicalFeatures, Correlations, OptionChain}
+TABLE_MAPPING: set[SQLModel] = {Tickers, StockTicks, TechnicalFeatures, Correlations, TradeAction}
 
 
 @app.get("/", include_in_schema=False)
@@ -108,6 +107,25 @@ def add_ticker(ticker: str, category: TickerCategory) -> str:
     pgdb.insert_items(correlations)
 
     return ticker
+
+
+@app.post("/trade/{ticker}")
+def log_trade_action(trade: Trade):
+    trade.ticker = trade.ticker.upper()
+    trade_entry = TradeAction(**trade.model_dump())
+    logger.info(f"Logging: {str(trade)}")
+
+    pgdb.insert_items([trade_entry])
+    pgdb.insert_items(
+        [
+            Tickers(
+                ticker=trade.upper(),
+                last_updated=dt.now(tz=pytz.utc),
+                category=TickerCategory.SWINGTRADE,
+            )
+        ],
+        update=True,
+    )
 
 
 @app.delete("/tickers/{ticker}")

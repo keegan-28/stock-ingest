@@ -1,4 +1,4 @@
-from src.common.schema_registry import TechnicalFeatures, StockTicks, Correlations
+from src.schema_registry.sql_tables import TechnicalFeatures, StockTicks, Correlations
 from src.strategies.strategies import TechnicalIndicators
 import polars as pl
 from typing import Any

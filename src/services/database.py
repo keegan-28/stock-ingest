@@ -29,7 +29,7 @@ class PostgresDB:
         SQLModel.metadata.create_all(self.engine, tables=[table_model.__table__])
         logger.info(f"Created table {table_name}")
 
-    def insert_items(self, items: list[SQLModel]) -> None:
+    def insert_items(self, items: list[SQLModel], update: bool = False) -> None:
         """Insert SQLModel items with upsert-like safety (ignore conflicts)"""
         if not items:
             return
@@ -38,7 +38,15 @@ class PostgresDB:
         table = model_cls.__table__
         values = [item.model_dump() for item in items]
 
-        stmt = insert(table).values(values).on_conflict_do_nothing()
+        # HACK: Make dynamic
+        if update:
+            stmt = insert(table).values(values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["ticker"],
+                set_={"category": stmt.excluded.category},  # only update category
+            )
+        else:
+            stmt = insert(table).values(values).on_conflict_do_nothing()
 
         try:
             with self.engine.begin() as conn:
