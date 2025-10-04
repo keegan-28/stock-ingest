@@ -1,7 +1,7 @@
 from pydantic import BaseModel
-from typing import TypedDict
 from src.services.database import PostgresDB
 from src.services.broker import AlpacaBroker
+from src.utils.logger import logger
 
 
 class DatabaseParams(BaseModel):
@@ -19,33 +19,37 @@ class Config(BaseModel):
     kafka_broker: list[str]
 
 
-class ServicesDict(TypedDict, total=False):
-    db: PostgresDB
-    broker: AlpacaBroker
-
-
 class ServiceRegistry:
     def __init__(self, config: Config) -> None:
         self.__config = config
-        self._services: ServicesDict = {}
+        self._db: PostgresDB | None = None
+        self._broker: AlpacaBroker | None = None
+        self._kafka: None = None  # placeholder
 
-    def get_db_conn(self) -> PostgresDB:
-        if "db" not in self._services:
-            self._services["db"] = PostgresDB(
+    @property
+    def db(self) -> PostgresDB:
+        if self._db is None:
+            logger.info("Initialising Database Connection")
+            self._db = PostgresDB(
                 self.__config.database_params.user,
                 self.__config.database_params.password,
                 self.__config.database_params.host,
                 self.__config.database_params.port,
                 self.__config.database_params.database_name,
             )
-        return self._services["db"]
+        return self._db
 
-    def get_broker_conn(self) -> AlpacaBroker:
-        if "broker" not in self._services:
-            self._services["broker"] = AlpacaBroker(
-                self.__config.alpaca_key, self.__config.alpaca_secret
-            )
-        return self._services["broker"]
+    @property
+    def broker(self) -> AlpacaBroker:
+        if self._broker is None:
+            logger.info("Initialising Broker Connection")
 
-    def get_kafka_conn(self) -> None:
-        pass
+            self._broker = AlpacaBroker(self.__config.alpaca_key, self.__config.alpaca_secret)
+        return self._broker
+
+    @property
+    def kafka(self):
+        if self._kafka is None:
+            logger.info("Initialising Kafka Connection")
+            pass
+        return self._kafka
