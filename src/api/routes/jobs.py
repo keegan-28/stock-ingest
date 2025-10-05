@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
 from src.api.routes.tickers import get_all_tickers, add_ticker
 from src.schema_registry.response_models import TickerCategory
 from src.utils.logger import logger
@@ -17,4 +18,4 @@ def run_all_tickers():
                     completed.append(ticker)
                 except Exception as e:
                     logger.error(f"{ticker}: {e}")
-    return {"completed": completed}
+    return JSONResponse({"completed": completed}, status_code=status.HTTP_201_CREATED)

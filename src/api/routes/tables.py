@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
 from sqlmodel import SQLModel
 from src.schema_registry.sql_tables import (
     StockTicks,
@@ -24,14 +25,14 @@ TABLE_MAPPING: set[type[SQLModel]] = {
 
 
 @router.post("/create", response_model=list[str])
-def create_tables(db: PostgresDB = Depends(get_db)):
+def create_tables(db: PostgresDB = Depends(get_db)) -> JSONResponse:
     """Create tables if they don't exist."""
     created = []
     for model in TABLE_MAPPING:
         if not db.table_exists(model.__tablename__):
             db.create_table(model)
             created.append(model.__tablename__)
-    return created
+    return JSONResponse({"created": created}, status_code=status.HTTP_201_CREATED)
 
 
 @router.get("/", response_model=list[TableSchema])

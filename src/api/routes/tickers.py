@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from datetime import datetime as dt, timedelta
 import pytz
 
@@ -14,7 +15,7 @@ router = APIRouter(tags=["Tickers"])
 
 
 @router.get("/")
-def get_all_tickers(db: PostgresDB = Depends(get_db)):
+def get_all_tickers(db: PostgresDB = Depends(get_db)) -> JSONResponse:
     """List all tickers grouped by category."""
     try:
         query = f"SELECT ticker, category FROM {Tickers.__tablename__} ORDER BY category;"
@@ -25,7 +26,7 @@ def get_all_tickers(db: PostgresDB = Depends(get_db)):
     grouped: dict[str, list[str]] = {}
     for ticker, category in rows:
         grouped.setdefault(category, []).append(ticker)
-    return grouped
+    return JSONResponse(grouped, status_code=status.HTTP_200_OK)
 
 
 @router.post("/")
@@ -34,7 +35,7 @@ def add_ticker(
     category: TickerCategory,
     db: PostgresDB = Depends(get_db),
     broker: AlpacaBroker = Depends(get_broker),
-):
+) -> JSONResponse:
     """Add a ticker, fetch data, compute indicators + correlations."""
     ticker = ticker.upper()
     logger.info(f"Adding ticker {ticker}")
@@ -52,11 +53,13 @@ def add_ticker(
     db.insert_items(indicators)
     db.insert_items(correlations)
 
-    return {"ticker": ticker, "category": category}
+    return JSONResponse(
+        {"ticker": ticker, "category": category}, status_code=status.HTTP_201_CREATED
+    )
 
 
 @router.delete("/{ticker}")
-def delete_ticker(ticker: str, db: PostgresDB = Depends(get_db)):
+def delete_ticker(ticker: str, db: PostgresDB = Depends(get_db)) -> JSONResponse:
     """Delete a ticker and all its related entries."""
     ticker = ticker.upper()
 
@@ -69,4 +72,4 @@ def delete_ticker(ticker: str, db: PostgresDB = Depends(get_db)):
     ]:
         db.delete_ticker(model, column, ticker)
 
-    return {"deleted": ticker}
+    return JSONResponse({"deleted": ticker}, status_code=status.HTTP_200_OK)

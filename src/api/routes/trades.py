@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
 from datetime import datetime as dt
 import pytz
 from src.schema_registry.sql_tables import TradeAction, Tickers
@@ -11,10 +12,10 @@ router = APIRouter(tags=["Trades"])
 
 
 @router.post("/{ticker}")
-def log_trade_action(trade: Trade, db: PostgresDB = Depends(get_db)):
+def log_trade_action(trade: Trade, db: PostgresDB = Depends(get_db)) -> JSONResponse:
     trade.ticker = trade.ticker.upper()
 
-    trade_entry = TradeAction(**trade.model_dump())
+    trade_entry = TradeAction.model_validate(trade)
     db.insert_items([trade_entry])
     db.insert_items(
         [
@@ -28,4 +29,6 @@ def log_trade_action(trade: Trade, db: PostgresDB = Depends(get_db)):
     )
 
     logger.info(f"Logged trade for {trade.ticker}")
-    return {"ticker": trade.ticker, "status": "logged"}
+    return JSONResponse(
+        {"ticker": trade.ticker, "status": "logged"}, status_code=status.HTTP_201_CREATED
+    )
