@@ -1,14 +1,15 @@
 from sqlmodel import SQLModel, Field
-from datetime import datetime
-from enum import Enum
-from pydantic import BaseModel
+from datetime import datetime, date
+
+from src.schema_registry.response_models import (
+    TickerCategory,
+    TableSchema,
+    Trade,
+    ContractType,
+    ColumnSchema,
+)
 
 # =====================TABLE SCHEMAS============================
-
-
-class TickerCategory(str, Enum):
-    PORTFOLIO = "portfolio"
-    WATCHLIST = "watchlist"
 
 
 class Tickers(SQLModel, table=True):
@@ -65,6 +66,11 @@ class TechnicalFeatures(SQLModel, table=True):
     bb_lower: float | None = Field(default=None, description="Lower Bollinger Band (20 MA - 2*std)")
 
 
+class TradeAction(Trade, SQLModel, table=True):
+    ticker: str = Field(index=True, primary_key=True)
+    trade_date: date = Field(index=True, primary_key=True)
+
+
 class MonteCarloSummary(SQLModel, table=True):
     # Composite primary key: (ticker, timestamp)
     ticker: str = Field(primary_key=True, index=True)
@@ -78,11 +84,6 @@ class MonteCarloSummary(SQLModel, table=True):
     p75: float
     p90: float
     p95: float
-
-
-class ContractType(str, Enum):
-    CALL = "call"
-    PUT = "put"
 
 
 class OptionChain(SQLModel, table=True):
@@ -109,20 +110,6 @@ class OptionChain(SQLModel, table=True):
     theta: float
     vega: float = Field(..., gt=0.0)
     rho: float
-
-
-# ====================================API RETURN SCHEMAS=====================================
-
-
-class ColumnSchema(BaseModel):
-    name: str
-    type_: str
-    is_primary_key: bool
-
-
-class TableSchema(BaseModel):
-    name: str
-    columns: list[ColumnSchema]
 
 
 # ===================================METHODS==============================

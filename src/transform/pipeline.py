@@ -1,5 +1,13 @@
-from src.common.schema_registry import TechnicalFeatures, StockTicks, Correlations
-from src.strategies.strategies import TechnicalIndicators
+from src.schema_registry.sql_tables import TechnicalFeatures, StockTicks, Correlations
+from src.strategies.strategies import (
+    rolling_mean,
+    rolling_std,
+    rsi,
+    macd,
+    bollinger_bands,
+    rolling_volume_avg,
+    rolling_correlation,
+)
 import polars as pl
 from typing import Any
 import numpy as np
@@ -8,13 +16,13 @@ from src.services.database import PostgresDB
 
 def calculate_indicators(ticker_data: list[StockTicks]) -> list[TechnicalFeatures]:
     df = pl.DataFrame([item.model_dump() for item in ticker_data])
-    df = TechnicalIndicators.rolling_mean(df, 50, "close", "ma_50")
-    df = TechnicalIndicators.rolling_mean(df, 200, "close", "ma_200")
-    df = TechnicalIndicators.rolling_std(df, 50, "close", "rolling_std_50")
-    df = TechnicalIndicators.rolling_volume_avg(df, 50, "rolling_vol_avg_50")
-    df = TechnicalIndicators.rsi(df, "close", 14)
-    df = TechnicalIndicators.macd(df)
-    df = TechnicalIndicators.bollinger_bands(df, 20, "bb")
+    df = rolling_mean(df, 50, "close", "ma_50")
+    df = rolling_mean(df, 200, "close", "ma_200")
+    df = rolling_std(df, 50, "close", "rolling_std_50")
+    df = rolling_volume_avg(df, 50, "rolling_vol_avg_50")
+    df = rsi(df, "close", 14)
+    df = macd(df)
+    df = bollinger_bands(df, 20, "bb")
 
     df_dict = df.to_dicts()
     indicators = []
@@ -80,7 +88,7 @@ def calculate_correlations(
         return []
 
     df = pl.DataFrame(raw_data)
-    df = TechnicalIndicators.rolling_correlation(df, tickers, window=window)
+    df = rolling_correlation(df, tickers, window=window)
 
     # Convert to Correlation models
     return [
