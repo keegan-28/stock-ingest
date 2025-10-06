@@ -15,7 +15,7 @@ router = APIRouter(tags=["Tickers"])
 
 
 @router.get("/")
-def get_all_tickers(db: PostgresDB = Depends(get_db)) -> JSONResponse:
+def get_all_tickers(db: PostgresDB = Depends(get_db)) -> dict[str, list[str]]:
     """List all tickers grouped by category."""
     try:
         query = f"SELECT ticker, category FROM {Tickers.__tablename__} ORDER BY category;"
@@ -26,7 +26,7 @@ def get_all_tickers(db: PostgresDB = Depends(get_db)) -> JSONResponse:
     grouped: dict[str, list[str]] = {}
     for ticker, category in rows:
         grouped.setdefault(category, []).append(ticker)
-    return JSONResponse(grouped, status_code=status.HTTP_200_OK)
+    return grouped
 
 
 @router.post("/")

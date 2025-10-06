@@ -7,6 +7,7 @@ from src.strategies.strategies import (
     bollinger_bands,
     rolling_volume_avg,
     rolling_correlation,
+    ema,
 )
 import polars as pl
 from typing import Any
@@ -20,6 +21,8 @@ def calculate_indicators(ticker_data: list[StockTicks]) -> list[TechnicalFeature
     df = rolling_mean(df, 200, "close", "ma_200")
     df = rolling_std(df, 50, "close", "rolling_std_50")
     df = rolling_volume_avg(df, 50, "rolling_vol_avg_50")
+    df = rolling_volume_avg(df, 20, "rolling_vol_avg_20")
+    df = ema(df, 50, "close", "ema_50")
     df = rsi(df, "close", 14)
     df = macd(df)
     df = bollinger_bands(df, 20, "bb")
@@ -38,10 +41,13 @@ def calculate_indicators(ticker_data: list[StockTicks]) -> list[TechnicalFeature
             ticker=row["ticker"],
             timestamp=row["timestamp"],
             close=safe_float(row.get("close")),
+            volume=safe_float(row.get("volume")),
             ma_50=safe_float(row.get("ma_50")),
             ma_200=safe_float(row.get("ma_200")),
+            ema_50=safe_float(row.get("ema_50")),
             rolling_std_50=safe_float(row.get("rolling_std_50")),
             rolling_vol_avg_50=safe_float(row.get("rolling_vol_avg_50")),
+            rolling_vol_avg_20=safe_float(row.get("rolling_vol_avg_20")),
             rsi_14=safe_float(row.get("rsi_14")),
             macd=safe_float(row.get("macd")),
             macd_signal=safe_float(row.get("macd_signal")),

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from src.services.database import PostgresDB
 from src.services.broker import AlpacaBroker
 from src.utils.logger import logger
+import threading
 
 
 class DatabaseParams(BaseModel):
@@ -25,18 +26,20 @@ class ServiceRegistry:
         self._db: PostgresDB | None = None
         self._broker: AlpacaBroker | None = None
         self._kafka: None = None  # placeholder
+        self._lock = threading.Lock()
 
     @property
     def db(self) -> PostgresDB:
         if self._db is None:
-            logger.info("Initialising Database Connection")
-            self._db = PostgresDB(
-                self.__config.database_params.user,
-                self.__config.database_params.password,
-                self.__config.database_params.host,
-                self.__config.database_params.port,
-                self.__config.database_params.database_name,
-            )
+            with self._lock:
+                logger.info("Initialising Database Connection")
+                self._db = PostgresDB(
+                    self.__config.database_params.user,
+                    self.__config.database_params.password,
+                    self.__config.database_params.host,
+                    self.__config.database_params.port,
+                    self.__config.database_params.database_name,
+                )
         return self._db
 
     @property

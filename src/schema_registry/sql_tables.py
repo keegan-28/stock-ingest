@@ -49,13 +49,18 @@ class TechnicalFeatures(SQLModel, table=True):
     )
 
     close: float
+    volume: float
 
     ma_50: float | None = Field(default=None, description="50-day simple moving average of close")
     ma_200: float | None = Field(default=None, description="200-day simple moving average of close")
     rolling_std_50: float | None = Field(
         default=None, description="50-day rolling standard deviation (volatility)"
     )
+    ema_50: float | None = Field(
+        default=None, description="50-day exponential moving average of close"
+    )
     rolling_vol_avg_50: float | None = Field(default=None, description="50-day average of volume")
+    rolling_vol_avg_20: float | None = Field(default=None, description="20-day average of volume")
 
     rsi_14: float | None = Field(default=None, description="14-day Relative Strength Index")
 

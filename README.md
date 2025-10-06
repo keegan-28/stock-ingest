@@ -48,7 +48,7 @@ uv venv
 source .venv/bin/activate
 uv sync
 
-uvicorn src.api.main:app --reload
+uvicorn main:app --reload
 ```
 
 To run as a docker container run detached
