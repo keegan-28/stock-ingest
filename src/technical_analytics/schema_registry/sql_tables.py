@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field
 from datetime import datetime, date
 
-from src.schema_registry.response_models import (
+from src.technical_analytics.schema_registry.response_models import (
     TickerCategory,
     TableSchema,
     Trade,

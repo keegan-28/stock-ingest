@@ -1,5 +1,5 @@
 import yaml
-from src.utils.logger import logger
+from src.technical_analytics.utils.logger import logger
 
 
 def load_config(path: str) -> dict[str, str]:

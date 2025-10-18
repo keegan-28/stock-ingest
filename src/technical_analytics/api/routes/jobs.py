@@ -1,11 +1,11 @@
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
-from src.api.routes.tickers import get_all_tickers, add_ticker
-from src.schema_registry.response_models import TickerCategory
-from src.services.database import PostgresDB
-from src.services.broker import AlpacaBroker
-from src.api.dependencies import get_db, get_broker
-from src.utils.logger import logger
+from src.technical_analytics.api.routes.tickers import get_all_tickers, add_ticker
+from src.technical_analytics.schema_registry.response_models import TickerCategory
+from src.technical_analytics.services.database import PostgresDB
+from src.technical_analytics.services.broker import AlpacaBroker
+from src.technical_analytics.api.dependencies import get_db, get_broker
+from src.technical_analytics.utils.logger import logger
 
 router = APIRouter(tags=["Jobs"])
 

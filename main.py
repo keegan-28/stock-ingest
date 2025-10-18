@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from contextlib import asynccontextmanager
-from src.utils.logger import logger
-from src.services import services
-from src.api.routes import tickers, trades, tables, jobs
+from src.technical_analytics.utils.logger import logger
+from src.technical_analytics.services import services
+from src.technical_analytics.api.routes import tickers, trades, tables, jobs
 
 
 @asynccontextmanager

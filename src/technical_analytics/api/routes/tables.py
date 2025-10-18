@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlmodel import SQLModel
-from src.schema_registry.sql_tables import (
+from src.technical_analytics.schema_registry.sql_tables import (
     StockTicks,
     TechnicalFeatures,
     Correlations,
@@ -9,9 +9,9 @@ from src.schema_registry.sql_tables import (
     TradeAction,
     get_table_schema,
 )
-from src.schema_registry.response_models import TableSchema
-from src.services.database import PostgresDB
-from src.api.dependencies import get_db
+from src.technical_analytics.schema_registry.response_models import TableSchema
+from src.technical_analytics.services.database import PostgresDB
+from src.technical_analytics.api.dependencies import get_db
 
 router = APIRouter(tags=["Tables"])
 

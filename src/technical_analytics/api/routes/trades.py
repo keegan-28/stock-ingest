@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from datetime import datetime as dt
 import pytz
-from src.schema_registry.sql_tables import TradeAction, Tickers
-from src.schema_registry.response_models import Trade, TickerCategory
-from src.services.database import PostgresDB
-from src.api.dependencies import get_db
-from src.utils.logger import logger
+from src.technical_analytics.schema_registry.sql_tables import TradeAction, Tickers
+from src.technical_analytics.schema_registry.response_models import Trade, TickerCategory
+from src.technical_analytics.services.database import PostgresDB
+from src.technical_analytics.api.dependencies import get_db
+from src.technical_analytics.utils.logger import logger
 
 router = APIRouter(tags=["Trades"])
 

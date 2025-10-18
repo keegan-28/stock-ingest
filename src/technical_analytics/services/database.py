@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine, inspect, text, delete
 from sqlalchemy.dialects.postgresql import insert
-from src.utils.logger import logger
+from src.technical_analytics.utils.logger import logger
 
 
 class PostgresDB:

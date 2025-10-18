@@ -13,8 +13,8 @@ from alpaca.trading.models import OptionContract
 from alpaca.data import StockBarsRequest, BarSet, Bar
 from datetime import datetime, timedelta
 import pytz
-from src.schema_registry.sql_tables import StockTicks, ContractType, OptionChain
-from src.utils.logger import logger
+from src.technical_analytics.schema_registry.sql_tables import StockTicks, ContractType, OptionChain
+from src.technical_analytics.utils.logger import logger
 
 
 class AlpacaBroker:

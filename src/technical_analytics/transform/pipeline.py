@@ -1,5 +1,5 @@
-from src.schema_registry.sql_tables import TechnicalFeatures, StockTicks, Correlations
-from src.strategies.strategies import (
+from src.technical_analytics.schema_registry.sql_tables import TechnicalFeatures, StockTicks, Correlations
+from src.technical_analytics.strategies.strategies import (
     rolling_mean,
     rolling_std,
     rsi,
@@ -12,7 +12,7 @@ from src.strategies.strategies import (
 import polars as pl
 from typing import Any
 import numpy as np
-from src.services.database import PostgresDB
+from src.technical_analytics.services.database import PostgresDB
 
 
 def calculate_indicators(ticker_data: list[StockTicks]) -> list[TechnicalFeatures]:

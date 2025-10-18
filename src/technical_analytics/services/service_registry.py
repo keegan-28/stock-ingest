@@ -1,7 +1,7 @@
 from pydantic import BaseModel
-from src.services.database import PostgresDB
-from src.services.broker import AlpacaBroker
-from src.utils.logger import logger
+from src.technical_analytics.services.database import PostgresDB
+from src.technical_analytics.services.broker import AlpacaBroker
+from src.technical_analytics.utils.logger import logger
 import threading
 
 

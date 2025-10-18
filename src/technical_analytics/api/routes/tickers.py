@@ -3,13 +3,13 @@ from fastapi.responses import JSONResponse
 from datetime import datetime as dt, timedelta
 import pytz
 
-from src.schema_registry.sql_tables import Tickers, StockTicks, TechnicalFeatures, Correlations
-from src.schema_registry.response_models import TickerCategory
-from src.transform.pipeline import calculate_indicators, calculate_correlations
-from src.utils.logger import logger
-from src.services.database import PostgresDB
-from src.services.broker import AlpacaBroker
-from src.api.dependencies import get_db, get_broker
+from src.technical_analytics.schema_registry.sql_tables import Tickers, StockTicks, TechnicalFeatures, Correlations
+from src.technical_analytics.schema_registry.response_models import TickerCategory
+from src.technical_analytics.transform.pipeline import calculate_indicators, calculate_correlations
+from src.technical_analytics.utils.logger import logger
+from src.technical_analytics.services.database import PostgresDB
+from src.technical_analytics.services.broker import AlpacaBroker
+from src.technical_analytics.api.dependencies import get_db, get_broker
 
 router = APIRouter(tags=["Tickers"])
 
